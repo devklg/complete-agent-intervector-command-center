@@ -1,0 +1,342 @@
+version: '3.8'
+
+services:
+  # Core Infrastructure
+  mongodb:
+    image: mongo:7
+    container_name: command-center-mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: command-center
+    networks:
+      - agent_network
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: command-center-chromadb
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    volumes:
+      - chromadb_data:/chroma/chroma
+    environment:
+      CHROMA_SERVER_HOST: 0.0.0.0
+    networks:
+      - agent_network
+
+  # Backend API
+  backend:
+    build: ./backend
+    container_name: command-center-backend
+    restart: unless-stopped
+    ports:
+      - '5000:5000'
+    depends_on:
+      - mongodb
+      - chromadb
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/command-center
+      CHROMA_URL: http://chromadb:8000
+      NODE_ENV: production
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - agent_network
+
+  # Frontend Dashboard
+  frontend:
+    build: ./frontend
+    container_name: command-center-frontend
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
+    environment:
+      REACT_APP_API_URL: http://localhost:5000/api
+      REACT_APP_CHROMA_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - agent_network
+
+  # Trinity Framework Agents (Ports 5001-5005)
+  theo-5001:
+    build: ./agents/theo
+    container_name: theo-frontend-5001
+    restart: unless-stopped
+    ports:
+      - '5001:3000'
+    environment:
+      - AGENT_ID=THEO-5001
+      - AGENT_TYPE=frontend
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  marcus-5002:
+    build: ./agents/marcus
+    container_name: marcus-backend-5002
+    restart: unless-stopped
+    ports:
+      - '5002:3000'
+    environment:
+      - AGENT_ID=MARCUS-5002
+      - AGENT_TYPE=backend
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  alex-5003:
+    build: ./agents/alex
+    container_name: alex-realtime-5003
+    restart: unless-stopped
+    ports:
+      - '5003:3000'
+    environment:
+      - AGENT_ID=ALEX-5003
+      - AGENT_TYPE=realtime
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  quinn-5004:
+    build: ./agents/quinn
+    container_name: quinn-qa-5004
+    restart: unless-stopped
+    ports:
+      - '5004:3000'
+    environment:
+      - AGENT_ID=QUINN-5004
+      - AGENT_TYPE=qa
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  aci-5005:
+    build: ./agents/aci
+    container_name: aci-orchestration-5005
+    restart: unless-stopped
+    ports:
+      - '5005:3000'
+    environment:
+      - AGENT_ID=ACI-5005
+      - AGENT_TYPE=orchestration
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  # PowerLine Agents (Ports 6001-6012)
+  david-database:
+    build: ./agents/david
+    container_name: david-database-6001
+    restart: unless-stopped
+    ports:
+      - '6001:3000'
+    environment:
+      - AGENT_ID=DAVID-DATABASE
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  elena-backend:
+    build: ./agents/elena
+    container_name: elena-backend-6002
+    restart: unless-stopped
+    ports:
+      - '6002:3000'
+    environment:
+      - AGENT_ID=ELENA-BACKEND
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  frank-frontend:
+    build: ./agents/frank
+    container_name: frank-frontend-6003
+    restart: unless-stopped
+    ports:
+      - '6003:3000'
+    environment:
+      - AGENT_ID=FRANK-FRONTEND
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  grace-ai:
+    build: ./agents/grace
+    container_name: grace-ai-6004
+    restart: unless-stopped
+    ports:
+      - '6004:3000'
+    environment:
+      - AGENT_ID=GRACE-AI
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  henry-realtime:
+    build: ./agents/henry
+    container_name: henry-realtime-6005
+    restart: unless-stopped
+    ports:
+      - '6005:3000'
+    environment:
+      - AGENT_ID=HENRY-REALTIME
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  iris-devops:
+    build: ./agents/iris
+    container_name: iris-devops-6006
+    restart: unless-stopped
+    ports:
+      - '6006:3000'
+    environment:
+      - AGENT_ID=IRIS-DEVOPS
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  jack-visualization:
+    build: ./agents/jack
+    container_name: jack-visualization-6007
+    restart: unless-stopped
+    ports:
+      - '6007:3000'
+    environment:
+      - AGENT_ID=JACK-VISUALIZATION
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  kelly-enrollment:
+    build: ./agents/kelly
+    container_name: kelly-enrollment-6008
+    restart: unless-stopped
+    ports:
+      - '6008:3000'
+    environment:
+      - AGENT_ID=KELLY-ENROLLMENT
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  liam-dashboard:
+    build: ./agents/liam
+    container_name: liam-dashboard-6009
+    restart: unless-stopped
+    ports:
+      - '6009:3000'
+    environment:
+      - AGENT_ID=LIAM-DASHBOARD
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  maya-viral:
+    build: ./agents/maya
+    container_name: maya-viral-6010
+    restart: unless-stopped
+    ports:
+      - '6010:3000'
+    environment:
+      - AGENT_ID=MAYA-VIRAL
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  noah-testing:
+    build: ./agents/noah
+    container_name: noah-testing-6011
+    restart: unless-stopped
+    ports:
+      - '6011:3000'
+    environment:
+      - AGENT_ID=NOAH-TESTING
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+  olivia-documentation:
+    build: ./agents/olivia
+    container_name: olivia-documentation-6012
+    restart: unless-stopped
+    ports:
+      - '6012:3000'
+    environment:
+      - AGENT_ID=OLIVIA-DOCUMENTATION
+      - CHROMA_URL=http://chromadb:8000
+      - PORT=3000
+    depends_on:
+      - chromadb
+    networks:
+      - agent_network
+
+volumes:
+  mongodb_data:
+    driver: local
+  chromadb_data:
+    driver: local
+
+networks:
+  agent_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
